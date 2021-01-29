@@ -1,0 +1,1486 @@
+<html>
+<head>
+    <!-- these 4 files always have to be included -->
+    <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css">
+    <link rel="stylesheet" type="text/css" href="../../css/adapter.css"/>
+
+    <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+
+    <!-- these files always have to be included -->
+    <script type="text/javascript" src="../../js/translate.js"></script>
+    <script type="text/javascript" src="../../lib/js/materialize.js"></script>
+    <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+    <script type="text/javascript" src="words.js"></script>
+    <style>
+        .m .col .select-wrapper + label {
+            top: -26px;
+        }
+        .m span {
+            font-size: 0.9em;
+        }
+
+        .m .tabs {
+            height: fit-content!important;
+        }
+
+        @media only screen and (max-width: 992px) {
+            .m .tabs {
+                display: block;
+            }
+        }
+
+        .m .page {
+            height: calc(100% - 118px);
+        }
+        #dialog-command {
+            width: calc(100% - 100px);
+        }
+        #dialog-command .title {
+            background: #64b5f6;
+            color: #FFF;
+            padding: 0.5rem;
+        }
+        #dialog-command .textarea {
+            margin-bottom: 0;
+        }
+        #dialog-command textarea {
+            background: #e9e9e9;
+            font-family: courier, monospace;
+            font-size: 11px;
+            resize: none;
+            width: 100%;
+            height: calc(100% - 125px);
+            margin-bottom: 0;
+        }
+        #dialog-command .progress-dont-close {
+            float: left;
+            padding-left: 1rem;
+            padding-top: 1rem;
+        }
+        #dialog-command .command {
+            font-style: italic;
+        }
+        #dialog-command .btn {
+            margin-right: 1.5rem;
+        }
+        .do-restore {
+            cursor: pointer;
+        }
+        .collapsible-body {
+            margin-left: 2rem !important;
+            padding-top: 0 !important;
+        }
+        .header {
+            border-top: 0px;
+            border-left: 0px;
+            border-right: 0px;
+            border-bottom: 1px;
+            border-style: solid;
+        }
+    </style>
+    <script type="text/javascript">
+        var $dialogCommand = null;
+        var $output = null;
+        var $dialogCommandProgress;
+        var lastMessage = '';
+        function encrypt(key, value) {
+            var result = '';
+            for(var i = 0; i < value.length; i++) {
+                result += String.fromCharCode(key[i % key.length].charCodeAt(0) ^ value.charCodeAt(i));
+            }
+            return result;
+        }
+        function decrypt(key, value) {
+            var result = '';
+            for(var i = 0; i < value.length; i++) {
+                result += String.fromCharCode(key[i % key.length].charCodeAt(0) ^ value.charCodeAt(i));
+            }
+            return result;
+        }
+
+        function fetchMySqlConfig(isInitial) {
+            socket.emit('getObjectView', 'system', 'instance', {startkey: 'system.adapter.sql.', endkey: 'system.adapter.sql.\u9999', include_docs: true}, function (err, res) {
+                var found = false;
+                if (res && res.rows && res.rows.length) {
+                    for (var i = 0; i < res.rows.length; i++) {
+                        var common = res.rows[0].value.common;
+                        var native = res.rows[i].value.native;
+                        if (common.enabled && native.dbtype === 'mysql') {
+                            $('#mySqlUser').val(native.user).trigger('change');
+                            $('#mySqlPassword').val(native.password).trigger('change');
+                            $('#mySqlHost').val(native.host).trigger('change');
+                            $('#mySqlPort').val(native.port === '0' ? 3306 : native.port || 3306).trigger('change');
+                            $('#mySqlName').val(native.dbname).trigger('change');
+                            var id = res.rows[i].value.
+                            found = res.rows[i].value._id;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        for (var j = 0; j < res.rows.length; j++) {
+                            var _native = res.rows[j].value.native;
+                            if (_native.dbtype === 'mysql') {
+                                $('#mySqlUser').val(_native.user).trigger('change');
+                                $('#mySqlPassword').val(_native.password).trigger('change');
+                                $('#mySqlHost').val(_native.host).trigger('change');
+                                $('#mySqlName').val(_native.dbname).trigger('change');
+                                $('#mySqlPort').val(_native.port === '0' ? 3306 : native.port || 3306).trigger('change');
+                                found = res.rows[j].value._id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (found) {
+                    M.updateTextFields();
+                    found = found.substring('system.adapter.'.length);
+                    !isInitial && showMessage(_('Config taken from %s', found));
+                } else {
+                    !isInitial && showMessage(_('No config found'));
+                }
+            });
+        }
+        function fetchCcuConfig(isInitial) {
+            socket.emit('getObjectView', 'system', 'instance', {startkey: 'system.adapter.hm-rpc.', endkey: 'system.adapter.hm-rpc.\u9999', include_docs: true}, function (err, res) {
+                if (res && res.rows && res.rows.length) {
+                    var found = false;
+                    for (var i = 0; i < res.rows.length; i++) {
+                        var common = res.rows[i].value.common;
+                        if (common.enabled) {
+                            var native = res.rows[i].value.native;
+                            $('#ccuHost').val(native.homematicAddress).trigger('change');
+                            found = res.rows[i].value._id;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        for (var j = 0; j < res.rows.length; j++) {
+                            var _native = res.rows[j].value.native;
+                            $('#ccuHost').val(_native.homematicAddress).trigger('change');
+                            found = res.rows[j].value._id;
+                        }
+                    }
+                }
+                if (found) {
+                    M.updateTextFields();
+                    found = found.substring('system.adapter.'.length);
+                    !isInitial && showMessage(_('Config taken from %s', found));
+                } else {
+                    !isInitial && showMessage(_('No config found'));
+                }
+            });
+        }
+        function fetchHistoryConfig(isInitial) {
+            socket.emit('getObjectView', 'system', 'instance', {startkey: 'system.adapter.history.', endkey: 'system.adapter.history.\u9999', include_docs: true}, function (err, res) {
+                if (res && res.rows && res.rows.length) {
+                    var found = false;
+                    for (var i = 0; i < res.rows.length; i++) {
+                        var common = res.rows[i].value.common;
+                        if (common.enabled) {
+                            var native = res.rows[i].value.native;
+                            $('#historyPath').val(native.storeDir).trigger('change');
+                            found = res.rows[i].value._id;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        for (var j = 0; j < res.rows.length; j++) {
+                            var _native = res.rows[j].value.native;
+                            $('#historyPath').val(_native.storeDir).trigger('change');
+                            found = res.rows[j].value._id;
+                        }
+                    }
+                }
+                if (found) {
+                    M.updateTextFields();
+                    found = found.substring('system.adapter.'.length);
+                    !isInitial && showMessage(_('Config taken from %s', found));
+                } else {
+                    !isInitial && showMessage(_('No config found'));
+                }
+            });
+        }
+        function initDialog() {
+            $dialogCommand = $('#dialog-command');
+            $output = $dialogCommand.find('#stdout');
+            $dialogCommandProgress = $dialogCommand.find('.progress div');
+            $dialogCommand.find('.progress-dont-close input').on('change', function () {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('backitup-close-on-ready', $(this).prop('checked') ? '1' : '0');
+                }
+            });
+            if (typeof localStorage !== 'undefined') {
+                if (localStorage.getItem('backitup-close-on-ready') === '0'){
+                    $dialogCommand.find('.progress-dont-close input').prop('checked', false);
+                } else {
+                    $dialogCommand.find('.progress-dont-close input').prop('checked', true);
+                }
+            }
+            $dialogCommand.modal({
+                dismissible: false
+            });
+            // workaround for materialize checkbox problem
+            $dialogCommand.find('input[type="checkbox"]+span').off('click').on('click', function () {
+                var $input = $(this).prev();
+                // ignore switch
+                if ($input.parent().parent().hasClass('switch')) return;
+                if (!$input.prop('disabled')) {
+                    $input.prop('checked', !$input.prop('checked')).trigger('change');
+                }
+            });
+            $dialogCommand.find('.btn').on('click', function () {
+                $dialogCommand.modal('close');
+            });
+        }
+        function showDialog(type) {
+            $output.val(_('Started...'));
+            $dialogCommand.modal('open');
+            $dialogCommand.find('.progress-dont-close').removeClass('disabled');
+            $dialogCommandProgress.show();
+            if (type === 'restore') {
+                showToast($dialogCommand, _('ioBroker will be stopped and started again. Please wait'), null, 10000);
+            }
+            lastMessage = '';
+        }
+        function getSize(bytes) {
+            if (bytes > 1024 * 1024 * 512) {
+                return Math.round(bytes / (1024 * 1024 * 1024) * 10) / 10 + 'GiB';
+            } else if (bytes > 1024 * 1024) {
+                return Math.round(bytes / (1024 * 1024) * 10) / 10 + 'MiB';
+            } else if (bytes > 1024) {
+                return Math.round(bytes / (1024) * 10) / 10 + 'KiB';
+            } else {
+                return bytes + ' bytes';
+            }
+        }
+        function getName(name) {
+            var parts = name.split('_');
+            if (parseInt(parts[0], 10).toString() !== parts[0]) {
+                parts.shift();
+            }
+            return new Date(
+                parts[0],
+                parseInt(parts[1], 10) - 1,
+                parseInt(parts[2].split('-')[0], 10),
+                parseInt(parts[2].split('-')[1], 10),
+                parseInt(parts[3], 10)).toLocaleString().replace(/:00$/, '');
+        }
+        function load(settings, onChange) {
+            if (!settings) return;
+            if (settings.redisEnabled === undefined) {
+                settings.redisEnabled = adapter.config.backupRedis;
+            }
+            if (settings.cifsMount === 'CIFS') {
+                settings.cifsMount = '';
+            }
+            $('.value').each(function () {
+                var $key = $(this);
+                var id = $key.attr('id');
+                if ($key.attr('type') === 'checkbox') {
+                    // do not call onChange direct, because onChange could expect some arguments
+                    $key.prop('checked', settings[id]).on('change', function () {
+                        showHideSettings();
+                        onChange();
+                    });
+                } else {
+                    var val = settings[id];
+                    if (id === 'mySqlPassword' || id === 'ccuPassword' || id === 'ftpPassword' || id === 'cifsPassword') {
+                        val = val ? decrypt((typeof systemConfig !== 'undefined' && systemConfig.native && systemConfig.native.secret) || 'Zgfr56gFe87jJOM', val) : '';
+                    }
+                    // do not call onChange direct, because onChange could expect some arguments
+                    $key.val(val).on('change', function () {
+                        onChange();
+                    }).on('keyup', function () {
+                        onChange();
+                    });
+                }
+            });
+            getIsAdapterAlive(function (isAlive) {
+                if (isAlive || common.enabled) {
+                    $('.do-backup')
+                        .removeClass('disabled')
+                        .on('click', function () {
+                            if (changed) {
+                                showError(_('Save the configuration first'));
+                                return;
+                            }
+                            var type = $(this).data('type');
+                            socket.emit('setState', adapter + '.' + instance + '.oneClick.' + type, {
+                                val: true,
+                                ack: false
+                            }, function (err) {
+                                if (!err) {
+                                    showDialog(type);
+                                    showToast(null, _('Backup started'));
+                                } else {
+                                    showError(err);
+                                }
+                            });
+                        }).each(function () {
+                            var type = $(this).data('type');
+                            var $btn = $(this);
+                            socket.emit('getState', adapter + '.' + instance + '.oneClick.' + type, function (err, state) {
+                                if (state && state.val) {
+                                    $btn.addClass('disabled');
+                                }
+                            });
+                        });
+                    socket.on('stateChange', function (id, state) {
+                        if (id === 'backitup.' + instance + '.oneClick.ccu') {
+                            if (state && state.val) {
+                                $('.btn-ccu').addClass('disabled');
+                            } else {
+                                $('.btn-ccu').removeClass('disabled');
+                            }
+                        } else
+                        if (id === 'backitup.' + instance + '.oneClick.total') {
+                            if (state && state.val) {
+                                $('.btn-total').addClass('disabled');
+                            } else {
+                                $('.btn-total').removeClass('disabled');
+                            }
+                        } else
+                        if (id === 'backitup.' + instance + '.oneClick.iobroker') {
+                            if (state && state.val) {
+                                $('.btn-iobroker').addClass('disabled');
+                            } else {
+                                $('.btn-iobroker').removeClass('disabled');
+                            }
+                        } else
+                        if (id === 'system.adapter.backitup.' + instance + '.alive') {
+                            if (state && state.val) {
+                                $('.do-backup').removeClass('disabled');
+                            } else {
+                                $('.do-backup').addClass('disabled');
+                            }
+                        } else
+                        if (id === 'backitup.' + instance + '.output.line') {
+                            if (state && state.val && state.val !== lastMessage) {
+                                lastMessage = state.val;
+                                var text = $output.val();
+                                $output.val(text + '\n' + state.val);
+                                if (state.val.match(/^\[EXIT]/)) {
+                                    var code = state.val.match(/^\[EXIT] ([-\d]+)/);
+                                    $dialogCommandProgress.hide();
+                                    $dialogCommand.find('.progress-dont-close').addClass('disabled');
+                                    if ($dialogCommand.find('.progress-dont-close input').prop('checked') &&
+                                        (!code || code[1] === '0')) {
+                                        setTimeout(function () {
+                                            $dialogCommand.modal('close');
+                                        }, 1500);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    socket.emit('subscribeStates',  'backitup.' + instance + '.*');
+                    socket.emit('subscribeStates',  'system.adapter.backitup.' + instance + '.alive');
+                    socket.on('reconnect', function () {
+                        socket.emit('subscribeStates',  'backitup.' + instance + '.*');
+                        socket.emit('subscribeStates',  'system.adapter.backitup.' + instance + '.alive');
+                    });
+                    $('.do-list').removeClass('disabled').on('click', function () {
+                        if (changed) {
+                            showMessage(_('Save the configuration first'));
+                            return;
+                        }
+                        $('.do-list').addClass('disabled');
+                        $('#tab-restore').find('.root').html('');
+                        sendTo(null, 'list', $('#restoreSource').val(), function (result) {
+                            $('.do-list').removeClass('disabled');
+                            console.log(result);
+                            if (result && result.error) {
+                                showError(result.error);
+                            }
+                            if (result && result.data) {
+                                var text = '';
+                                var data = result.data;
+                                for (var type in data) {
+                                    if (!data.hasOwnProperty(type)) continue;
+                                    text += '<li><div class="collapsible-header">' + type + '</div>';
+                                    text += '<ul class="collapsible-body collection">';
+                                    for (var storage in data[type]) {
+                                        if (data[type].hasOwnProperty(storage)) {
+                                            text += '<ul class="collapsible"><li><div class="collapsible-header">' + storage + '</div>';
+                                            text += '<ul class="collapsible-body collection">';
+                                            for (var i = data[type][storage].length - 1; i >= 0; i--) {
+                                                text += '<li class="collection-item"><div>' + getName(data[type][storage][i].name) + ' (' + getSize(data[type][storage][i].size) + ')' +
+                                                    '<a class="secondary-content do-restore" data-file="' + data[type][storage][i].path + '" data-type="' + type + '"><i class="material-icons">restore</i></a>' +
+                                                    '</div></li>';
+                                            }
+                                            text += '</ul></li></ul>';
+                                        }
+                                    }
+                                    text += '</ul></li>';
+                                }
+                                var $tabRestore = $('#tab-restore');
+                                $tabRestore
+                                    .find('.root')
+                                    .html(text);
+                                $tabRestore.find('.collapsible').collapsible();
+                                $tabRestore.find('.do-restore').on('click', function () {
+                                    var type = $(this).data('type');
+                                    var file = $(this).data('file');
+                                    var name = file.split('/').pop().split('_')[0];
+                                    confirmMessage(name !== '' ? _('ioBroker will be restarted during restore.') : _('Ready'), _('Are you sure?'), null, [_('Cancel'), _('OK')], function (result) {
+                                        if (result === 1) {
+                                            $('.do-list').addClass('disabled');
+                                            $('#tab-restore').find('.do-restore').addClass('disabled').hide();
+                                            sendTo(null, 'restore', {type: type, fileName: file}, function (result) {
+                                                if (!result || result.error) {
+                                                    showError(result.error);
+                                                } else {
+                                                    //Create Link for Restore Interface
+													var link = "http://" + location.hostname + ":8091/backitup-restore";
+                                                    // Log Window for Restore Interface
+                                                    setTimeout(function () {
+                                                        window.open(link, '_blank');
+                                                    }, 4000);
+                                                    var name = file.split('/').pop().split('_')[0];
+                                                    showDialog(name !== '' ? 'restore' : '');
+                                                    showToast(null, _('Restore started'));
+                                                }
+                                                $('.do-list').removeClass('disabled');
+                                                $('#tab-restore').find('.do-restore').removeClass('disabled').show();
+                                            });
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    });
+
+                    $('.get-googledrive-json').removeClass('disabled').on('click', function () {
+                        $('.get-googledrive-json').addClass('disabled');
+                        sendTo(null, 'authGoogleDrive', null, function (obj) {
+                            $('.get-googledrive-json').removeClass('disabled');
+                            if (obj && obj.url) {
+                                $('.get-googledrive-json').hide();
+                                $('.get-googledrive-url').show();
+                                $('.get-googledrive-code').show();
+                                $('#get-googledrive-url').text(obj.url).attr('href', obj.url);
+                                $('.get-googledrive-submit').show();
+                            } else if (obj.error) {
+                                showError(obj.error);
+                            } else {
+                                showError(_('No answer'));
+                            }
+                        });
+                        $('.get-googledrive-submit').on('click', function () {
+                            var code = $('#get-googledrive-code').val();
+                            if (!code) {
+                                return showError(_('No code entered'));
+                            }
+                            $('.get-googledrive-submit').addClass('disabled');
+                            sendTo(null, 'authGoogleDrive', {code: code}, function (obj) {
+                                $('.get-googledrive-submit').removeClass('disabled');
+                                if (obj && obj.done) {
+                                    if ($('#googledriveAccessJson').val() !== obj.json) {
+                                        $('#googledriveAccessJson').val(obj.json);
+                                        onChange();
+                                    }
+
+                                    $('.get-googledrive-code').hide();
+                                    $('.get-googledrive-url').hide();
+                                    $('.get-googledrive-json').show();
+                                    $('.get-googledrive-json span').text(_('Renew Google Drive Access'));
+                                    $('#googledriveAccessJson_span').text(_('Present'));
+                                } else if (obj && obj.error) {
+                                    showError(obj.error);
+                                } else {
+                                    showError(_('No answer'));
+                                }
+                            });
+                        });
+                    });
+                } else {
+                    $('.do-backup').addClass('disabled');
+                    $('.do-list').addClass('disabled');
+                    $('.get-googledrive-json').addClass('disabled');
+                }
+            });
+
+            if (settings.googledriveAccessJson) {
+                $('#googledriveAccessJson_span').text(_('Present'));
+                $('.get-googledrive-json span').text(_('Renew Google Drive Access'));
+            } else {
+                $('#googledriveAccessJson_span').text(_('Not present'));
+            }
+
+            showHideSettings();
+            onChange(false);
+            M.updateTextFields();  // function Materialize.updateTextFields(); to reinitialize all the Materialize labels on the page if you are dynamically adding inputs.
+            getAdapterInstances('telegram', function (instances) {
+                fillInstances('telegramInstance', instances, settings['telegramInstance']);
+            });
+            getAdapterInstances('whatsapp-cmb', function (instances) {
+                fillInstances('whatsappInstance', instances, settings['whatsappInstance']);
+            });
+
+            getAdapterInstances('email', function (instances) {
+                fillInstances('emailInstance', instances, settings['emailInstance']);
+            });
+
+            getAdapterInstances('pushover', function (instances) {
+                fillInstances('pushoverInstance', instances, settings['pushoverInstance']);
+            });
+
+            if (!settings.ccuHost) {
+                fetchCcuConfig(true);
+            }
+            if (!settings.historyPath) {
+                fetchHistoryConfig(true);
+            }
+            if (!settings.mySqlUser) {
+                fetchMySqlConfig(true)
+            }
+            $('.detect-mysql').on('click', function () {fetchMySqlConfig()});
+            $('.detect-ccu').on('click', function () {fetchCcuConfig()});
+            $('.detect-history').on('click', function () {fetchHistoryConfig()});
+
+            sendTo(null, 'getTelegramUser', null, function (obj) {
+                fillTelegramUser(settings['telegramUser'], obj)
+            });
+
+            initDialog();
+        }
+        function fillTelegramUser(id, str) {
+            var user = str.replace(/[{}"\\]/g,"").split(',');
+            var $sel = $('#telegramUser');
+            $sel.html('<option value="allTelegramUsers">' + _('All Receiver') + '</option>');
+
+            user.forEach(function(val){
+                val = val.split(':');
+                $('#telegramUser').append('<option value="' + val[1] + '"' + (id === val[1] ? ' selected' : '') + '>' + val[1] +'</option>');
+            });
+            $sel.select();
+        }
+        function fillInstances(id, arr, val) {
+            var $sel = $('#' + id);
+            $sel.html('<option value="">' + _('none') + '</option>');
+            for (var i = 0; i < arr.length; i++) {
+                var _id = arr[i]._id.replace('system.adapter.', '');
+                // Take first value
+//            if (!val) val = _id;
+                $sel.append('<option value="' + _id + '"' + (_id === val ? ' selected' : '') + '>' + _id + '</option>');
+            }
+            $sel.select();
+        }
+        function save(callback) {
+            var obj = {};
+            $('.value').each(function () {
+                var $this = $(this);
+                var id = $this.attr('id');
+                if ($this.attr('type') === 'checkbox') {
+                    obj[id] = $this.prop('checked');
+                } else {
+                    var val = $this.val();
+                    if (id === 'mySqlPassword' || id === 'ccuPassword' || id === 'ftpPassword' || id === 'cifsPassword') {
+                        val = val ? encrypt((typeof systemConfig !== 'undefined' && systemConfig.native && systemConfig.native.secret) || 'Zgfr56gFe87jJOM', val) : '';
+                    }
+                    obj[id] = val;
+                }
+            });
+            callback(obj);
+        }
+        function showHideSettings() {
+            if ($('#ftpEnabled').prop('checked')) {
+                $('.ftp').show();
+                if ($('#ftpOwnDir').prop('checked') ) {
+                    $('.ftp-extra').show();
+                    $('.ftp-standard').hide();
+                } else {
+                    $('.ftp-extra').hide();
+                    $('.ftp-standard').show();
+                }
+            } else {
+                $('.ftp').hide();
+            }
+            if ($('#cifsEnabled').prop('checked')) {
+                $('.cifs').show();
+                if ($('#cifsOwnDir').prop('checked') ) {
+                    $('.cifs-extra').show();
+                    $('.cifs-standard').hide();
+                } else {
+                    $('.cifs-extra').hide();
+                    $('.cifs-standard').show();
+                }
+            } else {
+                $('.cifs').hide();
+            }
+
+            if ($('#wakeOnLAN').prop('checked') ) {
+                    $('.wol').show();
+                } else {
+                    $('.wol').hide();
+                }
+
+            if ($('#dropboxOwnDir').prop('checked') ) {
+                $('.dropbox-extra').show();
+                $('.dropbox-standard').hide();
+            } else {
+                $('.dropbox-extra').hide();
+                $('.dropbox-standard').show();
+            }
+            if ($('#googledriveOwnDir').prop('checked') ) {
+                $('.googledrive-extra').show();
+                $('.googledrive-standard').hide();
+            } else {
+                $('.googledrive-extra').hide();
+                $('.googledrive-standard').show();
+            }
+            if ($('#redisEnabled').prop('checked')) {
+                $('.redis_path').show();
+            } else {
+                $('.redis_path').hide();
+            }
+            if ($('#historyEnabled').prop('checked')) {
+                $('.history_path').show();
+            } else {
+                $('.history_path').hide();
+            }
+            if ($('#telegramEnabled').prop('checked')) {
+                $('.telegram_inst').show();
+            } else {
+                $('.telegram_inst').hide();
+            }
+            if ($('#minimalEnabled').prop('checked')) {
+                $('.tab-iobroker-backup').show();
+            } else {
+                $('.tab-iobroker-backup').hide();
+            }
+            if ($('#ccuEnabled').prop('checked')) {
+                $('.tab-ccu-backup').show();
+            } else {
+                $('.tab-ccu-backup').hide();
+            }
+            if ($('#mySqlEnabled').prop('checked')) {
+                $('.mysql').show();
+            } else {
+                $('.mysql').hide();
+            }
+            var minimal = $('#minimalEnabled').prop('checked');
+            if (minimal) {
+                $('.minimal').show();
+            } else {
+                $('.minimal').hide();
+            }
+            var total = $('#totalEnabled').prop('checked');
+            if (total) {
+                $('.total').show();
+            } else {
+                $('.total').hide();
+            }
+            $('#connectType').on('change', function () {
+            if ($(this).val() === 'NFS') {
+                $('.nfs').hide();
+                $('.copy').show();
+            } else if ($(this).val() === 'CIFS') {
+                $('.nfs').show();
+                $('.copy').show();
+            } else if ($(this).val() === 'Copy') {
+                $('.nfs').hide();
+                $('.copy').hide();
+            }
+            }).trigger('change');
+
+            $('#restoreSource').on('change', function () {
+                if ($(this).val() === 'cifs' && $('#cifsOwnDir').prop('checked')) {
+                    $('.bkpType').show();
+                } else if ($(this).val() === 'ftp' && $('#ftpOwnDir').prop('checked')) {
+                    $('.bkpType').show();
+                } else if ($(this).val() === 'dropbox' && $('#dropboxOwnDir').prop('checked')) {
+                    $('.bkpType').show();
+                }  else if ($(this).val() === 'googledrive' && $('#googledriveOwnDir').prop('checked')) {
+                    $('.bkpType').show();
+                } else {
+                    $('.bkpType').hide();
+                }
+            }).trigger('change');
+
+            $('#notificationsType').on('change', function () {
+            if ($(this).val() === 'Telegram') {
+                $('.email').hide();
+                $('.pushover').hide();
+                $('.telegram').show();
+                $('.whatsapp').hide();
+            } else if ($(this).val() === 'E-Mail') {
+                $('.email').show();
+                $('.telegram').hide();
+                $('.pushover').hide();
+                $('.whatsapp').hide();
+            } else if ($(this).val() === 'Pushover') {
+                $('.pushover').show();
+                $('.telegram').hide();
+                $('.email').hide();
+                $('.whatsapp').hide();
+            } else if ($(this).val() === 'WhatsApp') {
+                $('.whatsapp').show();
+                $('.telegram').hide();
+                $('.email').hide();
+                $('.pushover').hide();
+            }
+            }).trigger('change');
+
+            if ($('#notificationEnabled').prop('checked')) {
+                $('.tab-notification').show();
+            } else {
+                $('.tab-notification').hide();
+            }
+            if ($('#mySqlEnabled').prop('checked')) {
+                $('.tab-my-sql').show();
+            } else {
+                $('.tab-my-sql').hide();
+            }
+            if ($('#redisEnabled').prop('checked')) {
+                $('.tab-redis').show();
+            } else {
+                $('.tab-redis').hide();
+            }
+            if ($('#historyEnabled').prop('checked')) {
+                $('.tab-history').show();
+            } else {
+                $('.tab-history').hide();
+            }
+            if ($('#dropboxEnabled').prop('checked')) {
+                $('.tab-dropbox').show();
+            } else {
+                $('.tab-dropbox').hide();
+            }
+            if ($('#googledriveEnabled').prop('checked')) {
+                $('.tab-googledrive').show();
+            } else {
+                $('.tab-googledrive').hide();
+            }
+            if ($('#cifsEnabled').prop('checked')) {
+                $('.tab-cifs').show();
+            } else {
+                $('.tab-cifs').hide();
+            }
+            if ($('#ftpEnabled').prop('checked')) {
+                $('.tab-ftp').show();
+            } else {
+                $('.tab-ftp').hide();
+            }
+      }
+    </script>
+</head>
+<body>
+<div class="m adapter-container">
+    <div class="row">
+        <div class="col s12">
+            <ul class="tabs">
+                <li class="tab col"><a href="#tab-settings" class="translate active">main settings</a></li>
+                <li class="tab col tab-restore"><a href="#tab-restore" class="translate">Restore</a></li>
+                <li class="tab col tab-notification"><a href="#tab-notification" class="translate">Notifications</a></li>
+                <li class="tab col tab-iobroker-backup"><a href="#tab-iobroker-backup" class="translate">iobroker backup</a></li>
+                <li class="tab col tab-ccu-backup"><a href="#tab-ccu-backup" class="translate">CCU Backup</a></li>
+                <li class="tab col tab-my-sql"><a href="#tab-my-sql" class="translate">MySql Backup</a></li>
+                <li class="tab col tab-redis"><a href="#tab-redis" class="translate">Redis Backup</a></li>
+                <li class="tab col tab-history"><a href="#tab-history" class="translate">History Data Backup</a></li>
+                <li class="tab col tab-cifs"><a href="#tab-cifs" class="translate">NAS / Copy</a></li>
+                <li class="tab col tab-ftp"><a href="#tab-ftp" class="translate">FTP</a></li>
+                <li class="tab col tab-dropbox"><a href="#tab-dropbox" class="translate">Dropbox</a></li>
+                <li class="tab col tab-googledrive"><a href="#tab-googledrive" class="translate">Google Drive</a></li>
+            </ul>
+        </div>
+        <div class="row">
+            <!-- main settings -->
+            <div id="tab-settings" class="col s12 page">
+                <div class="row">
+                    <div class="input-field col s6">
+                        <img src="backitup.png" class="logo">
+                    </div>
+                </div>
+                <!-- What to back up -->
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">What to back up</h6>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="minimalEnabled" type="checkbox"/>
+                        <label for="minimalEnabled" class="translate">iobroker backup</label>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="ccuEnabled" type="checkbox"/>
+                        <label for="ccuEnabled" class="translate">Homematic CCU backup</label>
+                    </div>
+                    <div class="input-field col s6 l2 ">
+                        <input class="value" id="mySqlEnabled" type="checkbox"/>
+                        <label for="mySqlEnabled" class="translate">MySql Backup</label>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="redisEnabled" type="checkbox"/>
+                        <label for="redisEnabled" class="translate">Save Redis state</label>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="historyEnabled" type="checkbox"/>
+                        <label for="historyEnabled" class="translate">Save History Data</label>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="zigbeeEnabled" type="checkbox"/>
+                        <label for="zigbeeEnabled" class="translate">Save Zigbee database</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Storage location</h6>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="cifsEnabled" type="checkbox"/>
+                        <span for="cifsEnabled" class="translate">NAS / Copy</span>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="ftpEnabled" type="checkbox"/>
+                        <span for="ftpEnabled" class="translate">FTP</span>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="dropboxEnabled" type="checkbox"/>
+                        <span for="dropboxEnabled" class="translate">Dropbox</span>
+                    </div>
+                    <div class="input-field col s6 l2">
+                        <input class="value" id="googledriveEnabled" type="checkbox"/>
+                        <span for="googledriveEnabled" class="translate">Google Drive</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Additional setting</h6>
+                    <div class="input-field col s12 m6 l3">
+                        <input class="value" id="notificationEnabled" type="checkbox"/>
+                        <label for="notificationEnabled" class="translate">Enable / Disable Notifications</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3">
+                        <input class="value" id="debugLevel" type="checkbox"/>
+                        <label for="debugLevel" class="translate">Enable / disable debug</label>
+                    </div>
+                    <div class="input-field col s12 m6 l2">
+                        <input type="number" class="value" id="historyEntriesNumber" min="1" max="50"/>
+                        <label for="historyEntriesNumber" class="translate">Number of history entries</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12">
+                        <div class="card-panel" style="background-color:#174475;">
+                            <span class="white-text translate">Some features of Backitup require additional adapters and tools. For detailed information please read the documentation of Backitup!!</span>
+                            <span><a href="https://github.com/simatec/ioBroker.backitup/blob/master/README.md#iobrokerbackitup" target="_blank" class="translate"> *** Open Readme ***</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iobroker Backup -->
+            <div id="tab-iobroker-backup" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">iobroker backup</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l3">
+                        <a class="waves-effect waves-light btn btn-iobroker do-backup" data-type="iobroker"><i class="material-icons right">backup</i><span class="translate">backup now</span></a>
+                    </div>
+                </div>
+				<div class="row iobroker">
+                    <div class="input-field col s12 m6 l3">
+                        <input class="value" id="minimalTime" type="text">
+                        <label for="minimalTime" class="translate">backup time</label>
+                        <span class="translate">Backup start time in hh: mm</span>
+                    </div>
+                    <div class="input-field col s12 m6 l3">
+                        <input type="number" class="value" id="minimalEveryXDays" min="1" max="100"/>
+                        <label for="minimalEveryXDays" class="translate">days</label>
+                        <span class="translate">Backup will run every X days</span>
+                    </div>
+                    <div class="input-field col s12 m6 l3">
+                        <input type="number" class="value" id="minimalDeleteAfter" min="1" max="100"/>
+                        <label for="minimalDeleteAfter" class="translate">piece</label>
+                        <span class="translate">old iobroker backups delete after X-days</span>
+                    </div>
+                    <div class="input-field col s12 m6 l3">
+                        <input class="value" id="minimalNameSuffix" type="text">
+                        <label for="minimalNameSuffix" class="translate">name</label>
+                        <span class="translate">Name suffix</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CCU Backup -->
+            <div id="tab-ccu-backup" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Homematic CCU backup</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l3 ccu">
+                        <a class="waves-effect waves-light btn btn-ccu do-backup" data-type="ccu"><i class="material-icons right">backup</i><span class="translate">backup now</span></a>
+                    </div>
+                    <div class="input-field col s6 l3 ccu">
+                        <a class="waves-effect waves-light btn detect-ccu"><i class="material-icons right">search</i><span class="translate">detect config</span></a>
+                    </div>
+                </div>
+                <div class="row ccu">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ccuTime" type="text">
+                        <label for="ccuTime" class="translate">backup time</label>
+                        <span class="translate">Backup start time in hh: mm</span>
+                    </div>
+                    <div class="input-field col s12 m4 l4">
+                        <input type="number" class="value" id="ccuEveryXDays" min="1" max="100"/>
+                        <label for="ccuEveryXDays" class="translate">days</label>
+                        <span class="translate">Backup will run every X days</span>
+                    </div>
+                    <div class="input-field col s12 m4 l4">
+                        <input type="number" class="value" id="ccuDeleteAfter" min="1" max="100"/>
+                        <label for="ccuDeleteAfter" class="translate">piece</label>
+                        <span class="translate">Old CCU backups delete after X days</span>
+                    </div>
+                </div>
+                <div class="row ccu">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ccuHost" type="text">
+                        <label for="ccuHost" class="translate">IP address</label>
+                        <span class="translate">IP of the CCU</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ccuUser" type="text">
+                        <label for="ccuUser" class="translate">Username</label>
+                        <span class="translate">Username of the CCU</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ccuPassword" type="password">
+                        <label for="ccuPassword" class="translate">password</label>
+                        <span class="translate">Password of the CCU</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mysql Backup -->
+            <div id="tab-my-sql" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">MySql Backup</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l3 mysql">
+                        <a class="waves-effect waves-light btn detect-mysql"><i class="material-icons right">search</i><span class="translate">detect config</span></a>
+                    </div>
+                </div>
+                <div class="row mysql">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="mySqlHost" type="text">
+                        <label for="mySqlHost" class="translate">Host</label>
+                        <span class="translate">MySQL Hostname</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="mySqlPort" type="text">
+                        <label for="mySqlPort" class="translate">port</label>
+                        <span class="translate">MySQL port</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="mySqlName" type="text">
+                        <label for="mySqlName" class="translate">name</label>
+                        <span class="translate">MySQL database name</span>
+                    </div>
+                </div>
+                <div class="row mysql">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="mySqlUser" type="text">
+                        <label for="mySqlUser" class="translate">MySql username</label>
+                        <span class="translate">MySql username</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="mySqlPassword" type="password">
+                        <label for="mySqlPassword" class="translate">password</label>
+                        <span class="translate">MySql password</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input type="text" class="value" id="mySqlDumpExe">
+                        <label for="mySqlDumpExe" class="translate">Full path</label>
+                        <span class="translate">Path with filename to mysqldump executable (leave empty to use default)</span>
+                    </div>
+                </div>
+                <div class="row mysql">
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="mysqlQuick" type="checkbox"/>
+                        <label for="mysqlQuick" class="translate">Retrieve tables row by row</label>
+                    </div>
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="mysqlSingleTransaction" type="checkbox"/>
+                        <label for="mysqlSingleTransaction" class="translate">BEGIN instruction before backup</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Redis -->
+            <div id="tab-redis" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Save Redis state</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l6 redis_path">
+                        <input class="value" id="redisPath" type="text"/>
+                        <label for="redisPath" class="translate">Redis file path</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Backup -->
+            <div id="tab-history" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Save History Data</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l3">
+                        <a class="waves-effect waves-light btn detect-history"><i class="material-icons right">search</i><span class="translate">detect config</span></a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s6 l6 history_path">
+                        <input class="value" id="historyPath" type="text"/>
+                        <label for="historyPath" class="translate">History data path</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12">
+                        <div class="translate">Backup of all stored data of the history adapter</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- notifications -->
+            <div id="tab-notification" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Notifications</h6>
+                </div>
+                <div class="row">
+                    <div class="input-field col s11 m2">
+                        <select class="value" id="notificationsType">
+                        <option value="Telegram" class="translate">Telegram</option>
+                        <option value="E-Mail" class="translate">E-Mail</option>
+                        <option value="Pushover" class="translate">Pushover</option>
+                        <option value="WhatsApp" class="translate">WhatsApp</option>
+                        </select>
+                        <label for="notificationsType" class="translate">notifications type</label>
+                    </div>
+                </div>
+                <!-- Telegram -->
+                <div class="row telegram">
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <select id="telegramInstance" class="value"></select>
+                        <label for="telegramInstance" class="translate">Telegram instance</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <select class="value" id="telegramUser"></select>
+                        <label class="translate" for="telegramUser">Telegram Receiver</label>
+                    </div>
+                </div>
+                <div class="row telegram">
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <select class="value" id="telegramNoticeType">
+                        <option value="longTelegramNotice" class="translate">Long Notifications</option>
+                        <option value="shortTelegramNotice" class="translate">Short Notifications</option>
+                        </select>
+                        <label class="translate" for="telegramNoticeType">Notification Style</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <input type="number" class="value" id="telegramWaitToSend" min="0" max="20"/>
+                        <label for="telegramWaitToSend" class="translate">Waiting for the send (seconds)</label>
+                    </div>
+                </div>
+                <div class="row telegram">
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <input class="value" id="telegramSilentNotice" type="checkbox"/>
+                        <label for="telegramSilentNotice" class="translate">Silent Notice</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 telegram">
+                        <input class="value" id="telegramOnlyError" type="checkbox"/>
+                        <label for="telegramOnlyError" class="translate">Notification only on errors</label>
+                    </div>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="row whatsapp">
+                    <div class="input-field col s12 m6 l3 whatsapp">
+                        <select id="whatsappInstance" class="value"></select>
+                        <label for="whatsappInstance" class="translate">WhatsApp instance</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 whatsapp">
+                        <select class="value" id="whatsappNoticeType">
+                        <option value="longWhatsappNotice" class="translate">Long Notifications</option>
+                        <option value="shortWhatsappNotice" class="translate">Short Notifications</option>
+                        </select>
+                        <label class="translate" for="whatsappNoticeType">Notification Style</label>
+                    </div>
+                </div>
+                <div class="row whatsapp">    
+                    <div class="input-field col s12 m6 l3 whatsapp">
+                        <input type="number" class="value" id="whatsappWaitToSend" min="0" max="20"/>
+                        <label for="whatsappWaitToSend" class="translate">Waiting for the send (seconds)</label>
+                    </div>
+                </div>
+                <div class="row whatsapp">
+                    <div class="input-field col s12 m6 l3 whatsapp">
+                        <input class="value" id="whatsappOnlyError" type="checkbox"/>
+                        <label for="whatsappOnlyError" class="translate">Notification only on errors</label>
+                    </div>
+                </div>
+                <!-- Pushover -->
+                <div class="row pushover">
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <select id="pushoverInstance" class="value"></select>
+                        <label for="pushoverInstance" class="translate">Pushover instance</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <select class="value" id="pushoverNoticeType">
+                        <option value="longPushoverNotice" class="translate">Long Notifications</option>
+                        <option value="shortPushoverNotice" class="translate">Short Notifications</option>
+                        </select>
+                        <label class="translate" for="pushoverNoticeType">Notification Style</label>
+                    </div>
+                </div>
+                <div class="row pushover">
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <input type="number" class="value" id="pushoverWaitToSend" min="0" max="20"/>
+                        <label for="pushoverWaitToSend" class="translate">Waiting for the send (seconds)</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <input class="value" id="pushoverDeviceID" type="text">
+                        <label for="pushoverDeviceID" class="translate">device ID (optional)</label>
+                    </div>
+                </div>
+                <div class="row pushover">
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <input class="value" id="pushoverSilentNotice" type="checkbox"/>
+                        <label for="pushoverSilentNotice" class="translate">Silent Notice</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 pushover">
+                        <input class="value" id="pushoverOnlyError" type="checkbox"/>
+                        <label for="pushoverOnlyError" class="translate">Notification only on errors</label>
+                    </div>
+                </div>
+                <!-- email -->
+                <div class="row email">
+                    <div class="input-field col s12 m6 l3 email">
+                        <input class="value" id="emailReceiver" type="text">
+                        <label for="emailReceiver" class="translate">email receiver</label>
+                        <span class="translate">email receiver</span>
+                    </div>
+                    <div class="input-field col s12 m6 l3 email">
+                        <input class="value" id="emailSender" type="text">
+                        <label for="emailSender" class="translate">email sender</label>
+                        <span class="translate">email sender</span>
+                    </div>
+                </div>
+                <div class="row email">
+                    <div class="input-field col s12 m6 l3 email">
+                        <select id="emailInstance" class="value"></select>
+                        <label for="emailInstance" class="translate">email instance</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 email">
+                        <select class="value" id="emailNoticeType">
+                        <option value="longEmailNotice" class="translate">Long Notifications</option>
+                        <option value="shortEmailNotice" class="translate">Short Notifications</option>
+                        </select>
+                        <label class="translate" for="emailNoticeType">Notification Style</label>
+                    </div>
+                </div>
+                <div class="row email">
+                    <div class="input-field col s12 m6 l3 email">
+                        <input type="number" class="value" id="emailWaitToSend" min="0" max="20"/>
+                        <label for="emailWaitToSend" class="translate">Waiting for the send (seconds)</label>
+                    </div>
+                    <div class="input-field col s12 m6 l3 email">
+                        <input class="value" id="emailOnlyError" type="checkbox"/>
+                        <label for="emailOnlyError" class="translate">Notification only on errors</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- nas / copy settings -->
+            <div id="tab-cifs" class="col s12 page">
+                <div class="row cifs">
+                    <h6 class="translate title" style="background-color:#174475;">NAS / Copy</h6>
+                </div>
+                <div class="row cifs">
+                    <div class="input-field col s11 m2">
+                        <select class="value" id="connectType">
+                        <option value="NFS" >NFS</option>
+                        <option value="CIFS" >CIFS</option>
+                        <option value="Copy" >Copy</option>
+                        </select>
+                        <label for="connectType" class="translate">connection type</label>
+                    </div>
+                </div>
+                <div class="row cifs copy">
+                    <div class="input-field col s12 m6 l6">
+                        <input class="value" id="cifsMount" type="text">
+                        <label for="cifsMount" class="translate">Host</label>
+                        <span class="translate">IP adress or hostname</span>
+                    </div>
+                    <div class="input-field col s12 m6 l6">
+                        <input class="value" id="cifsDomain" type="text">
+                        <label for="cifsDomain" class="translate">Domainname (optional)</label>
+                    </div>
+                </div>
+                <div class="row nfs">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="cifsUser" type="text">
+                        <label for="cifsUser" class="translate">Username</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="cifsPassword" type="password">
+                        <label for="cifsPassword" class="translate">Password</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <select class="value" id="smbType">
+                        <option value="vers=1.0" >SMB 1</option>
+                        <option value="vers=2.0" >SMB 2</option>
+                        <option value="vers=3.0" >SMB 3</option>
+                        </select>
+                        <label for="smbType" class="translate">smb type</label>
+                    </div>
+                </div>
+                <div class="row cifs">
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="sudoMount" type="checkbox"/>
+                        <label for="sudoMount" class="translate">Mount as root</label>
+                    </div>
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="cifsDeleteOldBackup" type="checkbox"/>
+                        <label for="cifsDeleteOldBackup" class="translate">Delete old NAS / Copy-Backups</label>
+                    </div>
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="cifsOwnDir" type="checkbox"/>
+                        <span for="cifsOwnDir" class="translate">Extra path for backup types</span>
+                    </div>
+                </div>
+                <div class="row cifs">
+                    <div class="input-field col s6 l4">
+                        <input class="value" id="wakeOnLAN" type="checkbox"/>
+                        <span for="wakeOnLAN" class="translate">Wake on LAN</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4 wol">
+                        <input class="value" id="macAd" type="text">
+                        <label for="macAd" class="translate">MAC address</label>
+                    </div>
+                    <div class="input-field col s12 m4 l4 wol">
+                        <input type="number" class="value" id="wolWait" min="25" max="180"/>
+                        <label for="wolWait" class="translate">seconds</label>
+                        <span class="translate">WOL wait time</span>
+                    </div>
+                </div>
+                <div class="row cifs cifs-extra">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="cifsMinimalDir" type="text">
+                        <label for="cifsMinimalDir" class="translate">Path for iobroker backup</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="cifsCcuDir" type="text">
+                        <label for="cifsCcuDir" class="translate">Path for CCU backup</label>
+                    </div>
+                </div>
+                <div class="row cifs cifs-standard">
+                    <div class="input-field col s12">
+                        <input class="value" id="cifsDir" type="text">
+                        <label for="cifsDir" class="translate">path</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ftp settings -->
+            <div id="tab-ftp" class="col s12 page">
+                <div class="row ftp">
+                    <h6 class="translate title" style="background-color:#174475;">FTP</h6>
+                </div>
+                <div class="row ftp">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpHost" type="text">
+                        <label for="ftpHost" class="translate">Host</label>
+                        <span class="translate">IP adress or hostname</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpPort" type="number" min="0" max="65565">
+                        <label for="ftpPort" class="translate">Port</label>
+                    </div>
+                </div>
+                <div class="row ftp">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpUser" type="text">
+                        <label for="ftpUser" class="translate">Username</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpPassword" type="password">
+                        <label for="ftpPassword" class="translate">Password</label>
+                    </div>
+                </div>
+                <div class="row ftp">
+                    <div class="input-field col s12">
+                        <input class="value" id="ftpDeleteOldBackup" type="checkbox"/>
+                        <label for="ftpDeleteOldBackup" class="translate">Delete old FTP-Backups</label>
+                    </div>
+                    <div class="input-field col s12">
+                        <input class="value" id="ftpOwnDir" type="checkbox"/>
+                        <label for="ftpOwnDir" class="translate">Extra path for backup types</label>
+                    </div>
+                </div>
+                <div class="row ftp ftp-extra">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpMinimalDir" type="text">
+                        <label for="ftpMinimalDir" class="translate">Path for iobroker backup</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="ftpCcuDir" type="text">
+                        <label for="ftpCcuDir" class="translate">Path for CCU backup</label>
+                    </div>
+                </div>
+                <div class="row ftp ftp-standard">
+                    <div class="input-field col s12">
+                        <input class="value" id="ftpDir" type="text">
+                        <label for="ftpDir" class="translate">path</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- dropbox settings -->
+            <div id="tab-dropbox" class="col s12 page">
+                <div class="row dropbox">
+                    <h6 class="translate title" style="background-color:#174475;">Dropbox</h6>
+                </div>
+                <div class="row dropbox">
+                    <div class="input-field col s12">
+                        <input class="value" id="dropboxAccessToken" type="password">
+                        <label for="dropboxAccessToken" class="translate">Access token</label>
+                        <span><a href="https://www.dropbox.com/developers/apps" target="_blank">dropbox.com</a></span>
+                    </div>
+                </div>
+                <div class="row dropbox">
+                    <div class="input-field col s12">
+                        <input class="value" id="dropboxDeleteOldBackup" type="checkbox"/>
+                        <label for="dropboxDeleteOldBackup" class="translate">Delete old Dropbox-Backups</label>
+                    </div>
+                    <div class="input-field col s12">
+                        <input class="value" id="dropboxOwnDir" type="checkbox"/>
+                        <label for="dropboxOwnDir" class="translate">Extra path for backup types</label>
+                    </div>
+                </div>
+                <div class="row dropbox dropbox-extra">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="dropboxMinimalDir" type="text">
+                        <label for="dropboxMinimalDir" class="translate">Dropbox Path for iobroker backup</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="dropboxCcuDir" type="text">
+                        <label for="dropboxCcuDir" class="translate">Dropbox Path for CCU backup</label>
+                    </div>
+                </div>
+                <div class="row dropbox dropbox-standard">
+                    <div class="input-field col s12">
+                        <input class="value" id="dropboxDir" type="text">
+                        <label for="dropboxDir" class="translate">Dropbox path</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- googledrive settings -->
+            <div id="tab-googledrive" class="col s12 page">
+                <div class="row googledrive">
+                    <h6 class="translate title" style="background-color:#174475;">Google Drive</h6>
+                </div>
+                <div class="row googledrive">
+                    <div class="input-field col s3">
+                        <input class="value" id="googledriveAccessJson" type="hidden"/>
+                        <span class="translate">Access token: </span>
+                        <span class="translate" id="googledriveAccessJson_span" style="font-weight: bold">Not present</span>
+                        <a class="waves-effect waves-light btn btn-iobroker get-googledrive-json"><i class="material-icons right">backup</i><span class="translate">Get Google Drive Access</span></a>
+                    </div>
+                    <div class="input-field col s12 get-googledrive-url" style="display: none">
+                        <span class="translate">Authorize this app by visiting this url: </span>
+                        <a id="get-googledrive-url" href="" target="_blank"></a>
+                    </div>
+                    <div class="input-field col s3 get-googledrive-code" style="display: none">
+                        <input id="get-googledrive-code" type="text"/>
+                        <label for="get-googledrive-code" class="translate">Enter the code from that page here</label>
+                        <a class="waves-effect waves-light btn btn-iobroker get-googledrive-submit"><i class="material-icons right">backup</i><span class="translate">Submit</span></a>
+                    </div>
+                </div>
+                <div class="row googledrive">
+                    <div class="input-field col s12">
+                        <input class="value" id="googledriveDeleteOldBackup" type="checkbox"/>
+                        <label for="googledriveDeleteOldBackup" class="translate">Delete old Google Drive-Backups</label>
+                    </div>
+                    <div class="input-field col s12">
+                        <input class="value" id="googledriveOwnDir" type="checkbox"/>
+                        <label for="googledriveOwnDir" class="translate">Extra path for backup types</label>
+                    </div>
+                </div>
+                <div class="row googledrive googledrive-extra">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="googledriveMinimalDir" type="text">
+                        <label for="googledriveMinimalDir" class="translate">Google Drive Path for iobroker backup</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="googledriveCcuDir" type="text">
+                        <label for="googledriveCcuDir" class="translate">Google Drive Path for CCU backup</label>
+                    </div>
+                </div>
+                <div class="row googledrive googledrive-standard">
+                    <div class="input-field col s12">
+                        <input class="value" id="googledriveDir" type="text">
+                        <label for="googledriveDir" class="translate">Google Drive path</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- restore settings -->
+            <div id="tab-restore" class="col s12 page">
+                <div class="row">
+                    <h6 class="translate title" style="background-color:#174475;">Restore</h6>
+                </div>
+                <div class="row" style="margin-bottom: 0">
+                    <div class="input-field col s11 m2">
+						<select class="value" id="restoreSource">
+                            <option value="local" class="translate">Local</option>
+                            <option value="cifs" class="translate">NAS / Copy</option>
+                            <option value="dropbox" class="translate">Dropbox</option>
+                            <option value="googledrive" class="translate">Google Drive</option>
+                            <option value="ftp" class="translate">FTP</option>
+						</select>
+						<label for="restoreSource" class="translate">source type</label>
+                    </div>
+                    <div class="input-field col s6 m2">
+                        <a class="waves-effect waves-light btn btn-iobroker do-list"><i class="material-icons right">search</i><span class="translate">Get list</span></a>
+                    </div>
+                    <div class="input-field col s6 l3">
+                        <input class="value" id="startAllRestore" type="checkbox"/>
+                        <label for="startAllRestore" class="translate">start all adapter after restore</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <ul class="collapsible root">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="dialog-command"    class="modal modal-fixed-footer" style="display: none">
+        <div class="modal-content">
+            <div class="row">
+                <div class="col s12">
+                    <h6 class="title"><span class="translate">Backitup execution</span>: <span class="command"></span></h6>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <div class="progress">
+                        <div class="indeterminate"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row textarea">
+                <div class="col s12">
+                    <textarea id="stdout" readonly cols="120" rows="30"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="progress-dont-close"><input type="checkbox" class="filled-in" /><span class="translate">close on ready</span></div>
+            <a class="modal-action modal-close waves-effect waves-green btn"><i class="large material-icons">close</i><span class="translate">Close</span></a>
+        </div>
+    </div>
+</div>
+</body>
+
+</html>

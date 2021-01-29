@@ -1,0 +1,447 @@
+{
+  "common": {
+    "name": "backitup",
+    "version": "1.6.7",
+    "news": {
+      "1.6.7": {
+        "en": "Bugfix error on GoogleDrive",
+        "de": "Bugfix-Fehler bei GoogleDrive",
+        "ru": "Исправление ошибки на GoogleDrive",
+        "pt": "Correção de erro no GoogleDrive",
+        "nl": "Bugfix-fout op GoogleDrive",
+        "fr": "Erreur de correction de bogue sur GoogleDrive",
+        "it": "Errore di correzione di bug su GoogleDrive",
+        "es": "Error de corrección de errores en GoogleDrive",
+        "pl": "Błąd naprawy błędu w GoogleDrive"
+      },
+      "1.6.6": {
+        "en": "Bugfix clean local backups, Bugfix mount and umount for sentry.io",
+        "de": "Bugfix bereinigt lokale Backups, Bugfix Mount und Umount für sentry.io",
+        "ru": "Исправление чистых локальных резервных копий, исправление ошибок монтирования и размонтирования для sentry.io",
+        "pt": "Correção de bugs para limpar backups locais, montagem de bugs e umount para sentry.io",
+        "nl": "Bugfix schone lokale back-ups, Bugfix mount en umount voor sentry.io",
+        "fr": "Bugfix nettoyer les sauvegardes locales, monter et démonter Bugfix pour sentry.io",
+        "it": "Bugfix pulisce i backup locali, Bugfix mount e umount per sentry.io",
+        "es": "Corrección de errores de copias de seguridad locales limpias, montaje y desmontaje de corrección de errores para sentry.io",
+        "pl": "Naprawianie błędów czyszczenia lokalnych kopii zapasowych, montowania poprawek błędów i umount dla sentry.io"
+      },
+      "1.6.5": {
+        "en": "Bugfix GoogleDrive Rate Limit errors; small fixes on zigbee backup",
+        "de": "Bugfix GoogleDrive Rate Limit-Fehler; kleine Korrekturen am ZigBee-Backup",
+        "ru": "Исправление ошибок ограничения скорости GoogleDrive; небольшие исправления в резервном копировании zigbee",
+        "pt": "Correção de erros Erros de limite de taxa do GoogleDrive; pequenas correções no backup zigbee",
+        "nl": "Bugfix GoogleDrive Rate Limit-fouten; kleine fixes op zigbee-back-up",
+        "fr": "Correction des erreurs de limite de taux de GoogleDrive; petits correctifs sur la sauvegarde zigbee",
+        "it": "Bugfix GoogleDrive Rate Limit errori; piccole correzioni sul backup di zigbee",
+        "es": "Corrección de errores de límite de velocidad de GoogleDrive; pequeñas correcciones en la copia de seguridad de zigbee",
+        "pl": "Bugfix Błędy limitu prędkości GoogleDrive; małe poprawki w kopii zapasowej zigbee"
+      },
+      "1.6.4": {
+        "en": "small fixes for sentry.io, small fixes on zigbee backup",
+        "de": "kleine Korrekturen für sentry.io, kleine Korrekturen für das ZigBee-Backup",
+        "ru": "небольшие исправления для sentry.io, мелкие исправления для резервного копирования zigbee",
+        "pt": "pequenas correções para sentry.io, pequenas correções no backup zigbee",
+        "nl": "kleine fixes voor sentry.io, kleine fixes voor zigbee backup",
+        "fr": "petits correctifs pour sentry.io, petits correctifs sur la sauvegarde zigbee",
+        "it": "piccole correzioni per sentry.io, piccole correzioni per il backup di zigbee",
+        "es": "pequeñas correcciones para sentry.io, pequeñas correcciones en la copia de seguridad de zigbee",
+        "pl": "małe poprawki do sentry.io, małe poprawki w kopii zapasowej zigbee"
+      },
+      "1.6.3": {
+        "en": "dependencies for googleapis updated, dependencies for dropbox-v2-api updated, dev-dependencies updated",
+        "de": "Abhängigkeiten für googleapis aktualisiert, Abhängigkeiten für dropbox-v2-api aktualisiert, Dev-Abhängigkeiten aktualisiert",
+        "ru": "обновлены зависимости для googleapis, обновлены зависимости для dropbox-v2-api, обновлены dev-dependencies",
+        "pt": "dependências para googleapis atualizadas, dependências para dropbox-v2-api atualizadas, dev-dependencies atualizadas",
+        "nl": "afhankelijkheden voor googleapis bijgewerkt, afhankelijkheden voor dropbox-v2-api bijgewerkt, dev-afhankelijkheden bijgewerkt",
+        "fr": "les dépendances pour googleap sont mises à jour, les dépendances pour dropbox-v2-api sont mises à jour, les dépendances de développement mises à jour",
+        "it": "dipendenze per googleapis aggiornate, dipendenze per dropbox-v2-api aggiornate, dev-dependencies aggiornate",
+        "es": "dependencias para googleapis actualizadas, dependencias para dropbox-v2-api actualizadas, dev-dependencies actualizadas",
+        "pl": "Zaktualizowano zależności dla googleapis, zaktualizowano zależności dla dropbox-v2-api, zaktualizowano zależności dev"
+      },
+      "1.6.2": {
+        "en": "added whatsapp-cmb support for notifications",
+        "de": "Unterstützung für WhatsApp-cmb Benachrichtigungen hinzugefügt",
+        "ru": "добавлена поддержка whatsapp-cmb для уведомлений",
+        "pt": "adicionado suporte whatsapp-cmb para notificações",
+        "nl": "whatsapp-cmb-ondersteuning toegevoegd voor meldingen",
+        "fr": "Ajout du support WhatsApp-cmb pour les notifications",
+        "it": "aggiunto il supporto whatsapp-cmb per le notifiche",
+        "es": "agregado soporte de whatsapp-cmb para notificaciones",
+        "pl": "dodano obsługę powiadomień przez WhatsApp-cmb"
+      },
+      "1.6.1": {
+        "en": "several fixes and optimizations",
+        "de": "verschiedene Korrekturen und Optimierungen",
+        "ru": "несколько исправлений и оптимизаций",
+        "pt": "várias correções e otimizações",
+        "nl": "verschillende fixes en optimalisaties",
+        "fr": "plusieurs correctifs et optimisations",
+        "it": "diverse correzioni e ottimizzazioni",
+        "es": "varias correcciones y optimizaciones",
+        "pl": "kilka poprawek i optymalizacji"
+      },
+      "1.6.0": {
+        "en": "redesignd adapter configuration",
+        "de": "Adapterkonfiguration neu gestaltet",
+        "ru": "переопределить конфигурацию адаптера",
+        "pt": "configuração do adaptador de redesignd",
+        "nl": "opnieuw ontworpen adapterconfiguratie",
+        "fr": "configuration de l'adaptateur redessinée",
+        "it": "riprogettazione della configurazione dell'adattatore",
+        "es": "configuración del adaptador de rediseño",
+        "pl": "przeprojektowana konfiguracja adaptera"
+      }
+    },
+    "title": "BackItUp",
+    "titleLang": {
+      "en": "BackItUp",
+      "de": "BackItUp",
+      "ru": "BackItUp - Резервное копирование",
+      "pt": "BackItUp",
+      "nl": "BackItUp",
+      "fr": "BackItUp",
+      "it": "BackItUp",
+      "es": "BackItUp",
+      "pl": "Kopia zapasowa"
+    },
+    "desc": {
+      "en": "This adapter enables the cyclical creation of backups of an IoBroker / Homematic installation",
+      "de": "Dieser Adapter ermöglicht das zyklische Erstellen von Backups einer IoBroker / Homematic-Installation",
+      "ru": "Этот адаптер обеспечивает циклическое создание резервных копий установки IoBroker / Homematic",
+      "pt": "Este adaptador permite a criação cíclica de backups de uma instalação do IoBroker / Homematic",
+      "nl": "Deze adapter maakt het cyclisch maken van back-ups van een IoBroker / Homematic-installatie mogelijk",
+      "fr": "Cet adaptateur permet la création cyclique de sauvegardes d'une installation IoBroker / Homematic",
+      "it": "Questo adattatore consente la creazione ciclica di backup di un'installazione IoBroker / Homematic",
+      "es": "Este adaptador permite la creación cíclica de copias de seguridad de una instalación de IoBroker / Homematic",
+      "pl": "Ten adapter umożliwia cykliczne tworzenie kopii zapasowych instalacji IoBroker / Homematic"
+    },
+    "authors": [
+      "simatec <nais@gmx.net>",
+      "peoples0815 <peoples0815github@gmail.com>",
+      "bluefox <dogafox@gmail.com>"
+    ],
+    "osDependencies": {
+      "linux": [
+        "cifs-utils",
+        "nfs-common"
+      ]
+    },
+    "docs": {
+      "en": "docs/en/backitup.md",
+      "de": "docs/de/backitup.md"
+    },
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "compact": true,
+    "icon": "backitup.png",
+    "materialize": true,
+    "messagebox": true,
+    "stopBeforeUpdate": true,
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/simatec/ioBroker.backitup/master/admin/backitup.png",
+    "keywords": [
+      "Backup",
+      "IoBroker",
+      "Homematic"
+    ],
+    "readme": "https://github.com/simatec/ioBroker.backitup/blob/master/README.md",
+    "loglevel": "info",
+    "type": "general",
+    "license": "MIT",
+    "plugins": {
+      "sentry": {
+        "dsn": "https://e8510540c3a343aa8ce5678a4b3c8107@sentry.iobroker.net/36"
+      }
+    }
+  },
+  "native": {
+    "minimalEnabled": false,
+    "minimalTime": "02:00",
+    "minimalEveryXDays": 1,
+    "minimalDeleteAfter": 5,
+    "minimalNameSuffix": "",
+    "redisMinimalEnabled": false,
+    "mysqlMinimalEnabled": false,
+    "mysqlQuick": false,
+    "mysqlSingleTransaction": false,
+    "ccuEnabled": false,
+    "ccuTime": "01:30",
+    "ccuEveryXDays": 3,
+    "ccuDeleteAfter": 5,
+    "ccuNameSuffix": "",
+    "ccuHost": "",
+    "ccuUser": "Admin",
+    "ccuPassword": "",
+    "dropboxEnabled": false,
+    "dropboxAccessToken": "",
+    "dropboxDeleteOldBackup": false,
+    "dropboxOwnDir": false,
+    "dropboxMinimalDir": "/backupDir/iobroker",
+    "dropboxCcuDir": "/backupDir/ccu",
+    "dropboxDir": "/backupDir",
+    "googledriveEnabled": false,
+    "googledriveAccessJson": "",
+    "googledriveDeleteOldBackup": false,
+    "googledriveOwnDir": false,
+    "googledriveMinimalDir": "/backupDir/iobroker",
+    "googledriveCcuDir": "/backupDir/ccu",
+    "googledriveDir": "/backupDir",
+    "mySqlEnabled": false,
+    "mySqlHost": "localhost",
+    "mySqlPort": "3306",
+    "mySqlName": "iobroker",
+    "mySqlUser": "",
+    "mySqlPassword": "",
+    "mySqlDeleteAfter": 5,
+    "mySqlDumpExe": "",
+    "cifsEnabled": false,
+    "cifsMount": "",
+    "cifsUser": "",
+    "cifsPassword": "",
+    "cifsOwnDir": false,
+    "cifsDomain": "",
+    "cifsDir": "sharename/backupDir",
+    "cifsCcuDir": "sharename/backupDir",
+    "cifsMinimalDir": "sharename/backupDir",
+    "cifsDeleteOldBackup": false,
+    "connectType": "NFS",
+    "smbType": "vers=1.0",
+    "sudoMount": false,
+    "wakeOnLAN": false,
+    "macAd": "20:DE:20:DE:20:DE",
+    "wolWait": 25,
+    "ftpEnabled": false,
+    "ftpHost": "",
+    "ftpPort": 21,
+    "ftpDir": "/backupDir",
+    "ftpUser": "",
+    "ftpPassword": "",
+    "ftpOwnDir": false,
+    "ftpCcuDir": "/backupDir/ccu",
+    "ftpMinimalDir": "/backupDir/iobroker",
+    "ftpDeleteOldBackup": false,
+    "redisEnabled": false,
+    "redisPath": "/var/lib/redis",
+    "historyEnabled": false,
+    "historyPath": "media/usb/history",
+    "zigbeeEnabled": false,
+    "notificationEnabled": false,
+    "notificationsType": "Telegram",
+    "telegramInstance": "telegram.0",
+    "telegramNoticeType": "longTelegramNotice",
+    "telegramUser": "All Receiver",
+    "telegramSilentNotice": false,
+    "telegramOnlyError": false,
+    "telegramWaitToSend": 0,
+    "whatsappInstance": "whatsapp-cmb.0",
+    "whatsappNoticeType": "longWhatsappNotice",
+    "whatsappOnlyError": false,
+    "whatsappWaitToSend": 0,
+    "pushoverInstance": "pushover.0",
+    "pushoverNoticeType": "longPushoverNotice",
+    "pushoverSilentNotice": false,
+    "pushoverDeviceID": "",
+    "pushoverOnlyError": false,
+    "pushoverWaitToSend": 0,
+    "emailReceiver": "xxx@xxx.com",
+    "emailSender": "xxx@xxx.com",
+    "emailInstance": "email.0",
+    "emailNoticeType": "longEmailNotice",
+    "emailOnlyError": false,
+    "emailWaitToSend": 0,
+    "debugLevel": false,
+    "historyEntriesNumber": 25,
+    "restoreSource": "local",
+    "startAllRestore": false
+  },
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.latestBackup",
+      "type": "state",
+      "common": {
+        "role": "state",
+        "name": "Latest backup found by start",
+        "type": "json",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.ccuNextTime",
+      "type": "state",
+      "common": {
+        "role": "indicator",
+        "name": "Next CCU backup",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": "none"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.iobrokerNextTime",
+      "type": "state",
+      "common": {
+        "role": "indicator",
+        "name": "Next iobroker backup",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": "none"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history",
+      "type": "channel",
+      "common": {
+        "name": "History Logs"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.html",
+      "type": "state",
+      "common": {
+        "role": "html",
+        "name": "History-Log of executed backups",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": "Noch kein Backup"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.json",
+      "type": "state",
+      "common": {
+        "role": "state",
+        "name": "History-Log of executed backups",
+        "type": "json",
+        "read": true,
+        "write": false,
+        "def": "[]"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.ccuLastTime",
+      "type": "state",
+      "common": {
+        "role": "indicator",
+        "name": "Last CCU backup",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": "No backups yet"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.iobrokerLastTime",
+      "type": "state",
+      "common": {
+        "role": "indicator",
+        "name": "Last iobroker backup",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": "No backups yet"
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.ccuSuccess",
+      "type": "state",
+      "common": {
+        "role": "switch",
+        "name": "Last ccu backup Success",
+        "type": "boolean",
+        "read": true,
+        "write": true,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "history.iobrokerSuccess",
+      "type": "state",
+      "common": {
+        "role": "switch",
+        "name": "Last iobroker backup Success",
+        "type": "boolean",
+        "read": true,
+        "write": true,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "oneClick",
+      "type": "channel",
+      "common": {
+        "name": "OneClick Buttons"
+      },
+      "native": {}
+    },
+    {
+      "_id": "oneClick.ccu",
+      "type": "state",
+      "common": {
+        "role": "switch",
+        "name": "Execute CCU backup",
+        "type": "boolean",
+        "read": true,
+        "write": true,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "oneClick.iobroker",
+      "type": "state",
+      "common": {
+        "role": "switch",
+        "name": "Execute iobroker backup",
+        "type": "boolean",
+        "read": true,
+        "write": true,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "output",
+      "type": "channel",
+      "common": {
+        "name": "Output states"
+      },
+      "native": {}
+    },
+    {
+      "_id": "output.line",
+      "type": "state",
+      "common": {
+        "role": "state",
+        "name": "Used for debug outputs",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    }
+  ],
+  "objects": []
+}
